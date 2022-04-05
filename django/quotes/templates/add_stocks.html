@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block content%}
+<h1>Add Stocks</h1>
+<br/>
+
+    <form action="{% url 'add-stocks' %}" class="d-flex"
+    method="POST">
+        {% csrf_token %}
+        <input class="form-control col-sm" type="search" 
+        placeholder="Add to Portfolio" aria-label="Search"
+        name="ticker">
+        <button class="btn btn-outline-success text-nowrap" type="submit">Add Ticker</button>
+    </form>
+<br/><br/>
+
+
+<table class="table table-striped table-bordered table-hover">
+    <thead class="table-dark">
+      <tr>
+        <th scope="col">Company</th>
+        <th scope="col">Price</th>
+        <th scope="col">Previous Close</th>
+        <th scope="col">Market Cap</th>
+        <th scope="col">52WeekHigh</th>
+        <th scope="col">52WeekLow</th>
+        <th scope="col">Beta</th>
+      </tr>
+    </thead>
+    {% if ticker %}
+    <tbody>
+        {% for api in output %}
+            <tr>
+                <th scope="row">{{api.name}}</th>
+                <td>$ {{ api.c|floatformat:2 }}</td>
+                <td>$ {{ api.pc|floatformat:2 }}</td>
+                <td>$ {{ api.marketCapitalization}}</td>
+                <td>$ {{api.metric.52WeekHigh|floatformat:2}}</td>
+                <td>$ {{api.metric.52WeekLow|floatformat:2}}</td>
+                <td>{{ api.metric.beta|floatformat:2 }}</td>
+            </tr>
+        {%endfor%}
+    {% endif %}
+    </tbody>
+  </table>
+
+<br/><br/>
+
+{% endblock%}

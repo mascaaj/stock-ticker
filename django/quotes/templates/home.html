@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content%}
+<h1>Hello World !</h1>
+
+<br/>
+<br/>
+
+{% if ticker %}
+    {{ ticker }}
+{% endif %}
+
+
+
+
+{% if api %}
+    {% if api == 'Error ...' %}
+        There was an error with the ticker specified.
+        Please correct it and try again.
+    {% else %}
+        <h1>{{ api.name }}</h1><br/>
+        Price : $ {{ api.c }}<br/>
+        Previous Close : $ {{ api.pc }}<br/>
+        Market Cap : $ {{ api.marketCapitalization}}<br/>
+        52WeekHigh : $ {{api.metric.52WeekHigh}}<br/>
+        52WeekLow : $ {{api.metric.52WeekLow}}<br/>
+        Beta : {{ api.metric.beta }}<br/>
+    {% endif %}
+{% endif %}
+
+
+{% endblock%}
+
