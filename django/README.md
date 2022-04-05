@@ -30,9 +30,12 @@ This is stock portfolio monitoring website, create using multiple frameworks
     ```python manage.py runserver 0.0.0.0:8000```
 
 ## @todo
-- DockerFile, docker container
+- ~~Split functions into different files (functional)~~
+- ~~Add suite of standard plots for each stock~~
+- ~~Parametrize the time for api call~~
 - Class implementation of ```views.py```
+- DockerFile, docker container
 - Add tests
 - Add linter
 - Integrate CI
-- Refactor folder structure for multiple languages
+- ~~Refactor folder structure for multiple languages~~
