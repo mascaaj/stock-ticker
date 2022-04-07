@@ -1,2 +1,23 @@
 <h1>Stocking</h1>
-<p>My first rails app</p>
+
+<br/>
+<%= form_tag root_path :method => 'POST' do %>
+    <%= text_field_tag 'ticker', nil, placeholder: "Enter Ticker Symbol", size: 50 %>
+    <%= submit_tag 'Lookup' %>
+<% end %>
+
+<br/><br/><br/>
+<% if @error %>
+    <%= @error %> <br/>
+<% elsif @symbol_input %>
+    <img src="<%= @profile.logo %>"><br/>
+    Company Name : <%= @profile.name %> <br/>
+    Company Ticker : <%= @symbol_input %><br/>
+    Price : $ <%= @rtprice.c %> <br/>
+    Previous Close : $ <%= @rtprice.pc %> <br/>
+    Market Cap : $ <%= @profile.market_capitalization %> <br/>
+<% elsif @nothing %>
+    <%= @nothing %> <br/>
+<% end %>
+
+

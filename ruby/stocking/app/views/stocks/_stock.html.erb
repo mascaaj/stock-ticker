@@ -1,0 +1,24 @@
+<div id="<%= dom_id stock %>">
+
+<%if @stock.ticker == ""%>
+  
+<% else %>
+  <% require 'finnhub_ruby' %>
+  <% finhub_key = ENV['FINHUB_API_KEY'] %>
+  <% FinnhubRuby.configure do |config|%>
+    <% config.api_key['api_key'] = finhub_key.to_str%>
+  <% end %>
+  <% finnhub_client = FinnhubRuby::DefaultApi.new %>
+  <%rtprice = finnhub_client.quote(stock.ticker)%>
+  <%profile = finnhub_client.company_profile2({symbol: stock.ticker})%>
+  <strong><%= profile.name %></strong><br/>
+  Ticker : <%= profile.ticker%><br/>
+  Current Price : $ <%= number_with_precision(rtprice.c, :precision => 2, :delimiter =>',') %><br/>
+  Previous Close :$ <%= number_with_precision(rtprice.pc, :precision => 2, :delimiter =>',') %><br/>
+  Market Capitalization (000s) : $ <%= number_with_precision(profile.market_capitalization, :precision => 0, :delimiter =>',') %><br/>
+  Industry: <%= profile.finnhub_industry %><br/>
+  <img src="<%= profile.logo %>" class="img-thumbnail"><br/>
+
+<% end %>
+
+</div>

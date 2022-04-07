@@ -18,6 +18,13 @@
 - Install ruby and rails. This is a multistep process. For Ubuntu, I used this resource
 https://gorails.com/setup/ubuntu/18.04
 
+- Install webpack by including it in gemfile
+    ``` 
+    bundle install
+    rails install webpack
+    ```
+
+- Install jquery bootstrap and other dependencies. Most instructions out there were outdated. This worked https://martinezjf2.medium.com/installing-bootstrap-to-a-rails-project-53d3d37db702
 ## Run Application
 
 - Create an application
