@@ -60,9 +60,10 @@ This is stock portfolio monitoring website, create using multiple frameworks
 - ~~Split functions into different files (functional)~~
 - ~~Add suite of standard plots for each stock~~
 - ~~Parametrize the time for api call~~
-- Class implementation of `views.py`
+- ~~Class implementation of `views.py`~~
 - ~~DockerFile, docker container~~
+- ~~Refactor folder structure for multiple languages~~
+- Seem to have added in an irregular bug : Add stocks table does not fill out 100% of the time (Test and inspect)
 - Add tests
 - Add linter
 - Integrate CI
-- ~~Refactor folder structure for multiple languages~~
