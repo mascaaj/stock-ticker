@@ -1,21 +1,21 @@
-from wsgiref.util import request_uri
 from django.shortcuts import render, redirect
 from .models import Stock
 from .forms import StockForm
 from django.contrib import messages
-from .data_processing import build_plot
-from .interface import get_stock, get_yr_historical_data
-import pandas as pd
+from .data_processing import GeneratePlots
+from .interface import InterfaceLayer
 
 # Application Layer
 
 def home(request):
     if request.method == 'POST':
         ticker =  request.POST["ticker"]
-        api = get_stock(ticker)
-        return render(request, 'home.html', {'api' : api})
+        stock = InterfaceLayer(ticker)
+        stock.get_stock()
+        return render(request, 'home.html', {'api' : stock.api})
     else:
-        return render(request, 'home.html', {'ticker' : "Enter a ticker symbol above."})
+        return render(request, 'home.html', 
+                     {'ticker' : "Enter a ticker symbol above."})
 
 def add_stocks(request):
     if request.method == 'POST':
@@ -28,9 +28,11 @@ def add_stocks(request):
         ticker = Stock.objects.all()
         output = []
         for ticker_item in ticker:
-            api = get_stock(ticker_item)
-            output.append(api)
-        return render(request, 'add_stocks.html', {'ticker':ticker, 'output':output})
+            stock = InterfaceLayer(ticker_item)
+            stock.get_stock()
+            output.append(stock.api)
+        return render(request, 'add_stocks.html', {'ticker':ticker, 
+                    'output':output})
 
 def delete(request, stock_id):
     item =  Stock.objects.get(pk=stock_id)
@@ -49,8 +51,12 @@ def plot_stock(request):
     ticker = Stock.objects.all()
     return render(request, 'plot_stocks.html', {'ticker' : ticker})
 
-def plot(request, stock):
-    df = get_yr_historical_data(str(stock))
-    script, div = build_plot(df, stock)
+def plot(request, ticker):
+    stock = InterfaceLayer(ticker, years=1)
+    stock.get_yr_historical_data()
+    stock.get_indicator()
+    plots = GeneratePlots(stock.df,ticker, years=1)
+    script, div = plots.plot()
     ticker = Stock.objects.all()
-    return render(request, 'plot_stocks.html', {'ticker': ticker, 'script': script, 'div':div})
+    return render(request, 'plot_stocks.html', {'ticker': ticker, 
+                'script': script, 'div': div})

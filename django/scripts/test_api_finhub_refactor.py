@@ -1,18 +1,89 @@
-
+import requests
+import json
+import os
+import time
 import pandas as pd
 import numpy as np
+from datetime import datetime, timedelta
+from bokeh.plotting import figure, show, output_file
 from bokeh.layouts import gridplot
+from bokeh.models import DatetimeTickFormatter, LinearAxis, Range1d, Span
 from bokeh.embed import components
-from bokeh.models import DatetimeTickFormatter, DatetimeTickFormatter, LinearAxis, Range1d, Span
-from bokeh.plotting import figure
+
+
+class InterfaceLayer:
+    
+    def __init__(self, symbol, resolution='W', delta=2*365):
+        _key = 'FINHUB_API_KEY'
+        self.key = str(os.environ.get(_key))
+        self.symbol = str(symbol)
+        self.url_rtprice = 'https://finnhub.io/api/v1/quote?symbol=' +\
+                            self.symbol + '&token=' + self.key
+        self.url_profile = 'https://finnhub.io/api/v1/stock/profile2?symbol=' +\
+                            self.symbol + '&token=' + self.key
+        self.url_financials = 'https://finnhub.io/api/v1/stock/metric?symbol=' +\
+                            self.symbol + '&metric=all&token=' + self.key
+        
+        self.resolution = resolution
+        self.api = "initialized, not used"
+        self.calculate_start_date(delta=delta)
+
+
+
+    def calculate_start_date(self, delta=365):
+        now = time.time()
+        self.now_ts = str(int(now))
+        self.now_dt = datetime.fromtimestamp(now)
+        self.start_stamp = str(int((self.now_dt - timedelta(days=delta)).timestamp()))
+        self.url_history = 'https://finnhub.io/api/v1/stock/candle?symbol=' +\
+                self.symbol + '&resolution=' + self.resolution +\
+                '&from='+ self.start_stamp + '&to=' + self.now_ts +\
+                '&token=' + self.key
+        self.url_indicator_rsi = 'https://finnhub.io/api/v1/indicator?symbol=' +\
+                             self.symbol + '&resolution=' + self.resolution +\
+                             '&from='+ self.start_stamp + '&to=' + self.now_ts +\
+                             '&indicator='+ 'rsi' + '&timeperiod='+ '3' + '&token=' + self.key
+    # API Interface Layer
+    def get_stock(self):
+        api_request_price = requests.get(self.url_rtprice)
+        api_profile = requests.get(self.url_profile)
+        api_financials = requests.get(self.url_financials)
+        try:
+            self.api = json.loads(api_request_price.content)
+            # Might be a better way to raise this error, need to study json parser
+            if not self.api.get('d'):
+                raise ValueError
+            self.api.update(api_profile.json())
+            self.api.update(api_financials.json())
+        except Exception as e:
+            self.api = 'Error ...'
+
+    def get_yr_historical_data(self):
+        api_history = requests.get(self.url_indicator_rsi)
+        try:
+            self.api = json.loads(api_history.content)
+            # Might be a better way to raise this error, need to study json parser
+            if not self.api.get('o'):
+                raise ValueError
+        except Exception as e:
+            self.api = 'Error ...'
+        self.df = pd.DataFrame(self.api)
+        self.df = self.df.rename(columns={"c": "close", "o": "open", "h":"high", "l":"low", "v":"vol","t":"stamp"})
+        self.df.stamp = self.df.stamp*1000
+
+    def get_indicator(self):
+        self.df['sma_3'] = self.df['close'].rolling(3).mean()
+        self.df['sma_10'] = self.df['close'].rolling(10).mean()
+        self.df['sma_20'] = self.df['close'].rolling(20).mean()
+        self.df['ema_30'] = self.df['close'].ewm(span=30).mean()
+
 
 class GeneratePlots:
 
-    def __init__(self, df, symbol, window=8, bins=30, years=1):
+    def __init__(self, df, symbol, window=8, bins=30):
         self.window = window
         self.symbol = symbol
         self.bins=bins
-        self.years = years
         self.df = df.drop(['s'], axis=1)
         self.get_bollinger_bands()
         self.get_daily_returns()
@@ -43,8 +114,8 @@ class GeneratePlots:
         self.kurt = str(round(self.daily_returns.open.kurtosis(), 2))
 
     def timeseries_plot(self):
-        self.timeseries = figure(title=str(self.years) +" year(s) History - " + 
-                    self.symbol, 
+        
+        self.timeseries = figure(title="One year History - " + self.symbol, 
                     x_axis_type="datetime", 
                     x_axis_label='Time', 
                     y_axis_label='$',
@@ -68,12 +139,12 @@ class GeneratePlots:
         self.timeseries.line(self.df.stamp, self.df.low, 
                             legend_label="Low price", line_width=1.25, 
                             line_color="red", line_dash='dashed')
-        self.timeseries.legend.location = "top_left"
+
 
     def candle_plot(self):
         inc = self.df.close > self.df.open
         dec = self.df.open > self.df.close
-        self.candle = figure(title=str(self.years) +" year(s) History - Candle Plot : " +
+        self.candle = figure(title="One year History - Candle Plot : " + 
                         self.symbol, 
                         x_axis_type="datetime", 
                         x_axis_label='Time', 
@@ -88,7 +159,6 @@ class GeneratePlots:
             months="%d %b %Y",
             years="%d %b %Y"
         )
-        self.candle.grid.grid_line_alpha=0.3
         self.candle.xaxis.major_label_orientation = self.x_axis_angle
         self.candle.segment(self.df.stamp, self.df.high, self.df.stamp, 
                             self.df.low, color="black")
@@ -99,9 +169,10 @@ class GeneratePlots:
                             self.df.close[dec], fill_color="#F2583E", 
                             line_color="black")
 
+
     def indicators_plot(self):
-        self.indicators = figure(title=str(self.years) +" year(s) History - " + 
-                    self.symbol, 
+        
+        self.indicators = figure(title="One year History - " + self.symbol, 
                     x_axis_type="datetime", 
                     x_axis_label='Time', 
                     y_axis_label='$',
@@ -142,8 +213,8 @@ class GeneratePlots:
                             alpha=0.25, level='underlay', y_range_name='two')
 
     def rsi_plot(self):
-        self.rsi = figure(title=str(self.years) +" year(s) History - rsi - " +
-                    self.symbol, 
+        
+        self.rsi = figure(title="One year History - rsi" + self.symbol, 
                     x_axis_type="datetime", 
                     x_axis_label='Time', 
                     y_axis_label='$',
@@ -162,15 +233,13 @@ class GeneratePlots:
         self.rsi.line(self.df.stamp, self.df.rsi, 
                             legend_label="RSI", line_width=1.2, 
                             line_color="gray", line_dash='solid')
-        hline_70 = Span(location=70, dimension='width', 
-                        line_color='red', line_width=0.5)
-        hline_30 = Span(location=30, dimension='width', 
-                        line_color='green', line_width=0.5)
+        hline_70 = Span(location=70, dimension='width', line_color='red', line_width=0.5)
+        hline_30 = Span(location=30, dimension='width', line_color='green', line_width=0.5)
         self.rsi.add_layout(hline_70)
         self.rsi.add_layout(hline_30)
 
     def bollinger_plot(self):
-        self.bollinger = figure(title=str(self.years) +" year(s) History - Bollinger Bands :" + 
+        self.bollinger = figure(title="One year History - Bollinger Bands :" + 
                     self.symbol, 
                     x_axis_type="datetime", 
                     x_axis_label='Time', 
@@ -192,14 +261,13 @@ class GeneratePlots:
         self.bollinger.line(self.df.stamp, self.df.boll_high, 
                             legend_label="upper_bollinger", line_width=1.25, 
                             line_color="green", line_dash='dashed')
-        self.bollinger.legend.location = "top_left"
         self.bollinger.line(self.df.stamp, self.df.boll_low, 
                             legend_label="lower_bollinger", line_width=1.25, 
                             line_color="red", line_dash='dashed')
 
     def returns_histogram(self):
         hist, edges = np.histogram(self.daily_returns.open, bins=self.bins)
-        self.returns = figure(title=str(self.years) +" year(s) History - Opening Price Returns : " 
+        self.returns = figure(title="One year History - Opening Returns : " 
                         + self.symbol +
                         ' mu : ' + self.mean + 
                         ' sd : ' + self.sd + 
@@ -209,7 +277,7 @@ class GeneratePlots:
                         tools=self.tools,
                         plot_height=600, plot_width=600)
         self.returns.quad(top=hist, bottom=0, left=edges[:-1], right=edges[1:],
-                        fill_color="skyblue", line_color="black")
+                fill_color="skyblue", line_color="black")
 
 
     def build_plot(self, width=600, height=600):
@@ -227,4 +295,14 @@ class GeneratePlots:
         self.bollinger_plot()
         self.returns_histogram()
         self.build_plot()
+        show(self.grid)
         return self.components
+
+if __name__ == "__main__":
+    symbol = 'CAT'
+    stock = InterfaceLayer(symbol)
+    stock.get_yr_historical_data()
+    stock.get_indicator()
+
+    plots = GeneratePlots(stock.df,symbol)
+    plots.plot()
