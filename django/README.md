@@ -55,6 +55,11 @@ This is stock portfolio monitoring website, create using multiple frameworks
 
 - Navigate to `<allowed_host_ip_address>:8000` in browser of choice
 
+- Remove any dangling images / none tags using :
+
+	```
+	docker image rm -f $(docker images -f dangling=true -q)
+	```
 
 ## @todo
 - ~~Split functions into different files (functional)~~
